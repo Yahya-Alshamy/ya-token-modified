@@ -1,170 +1,149 @@
-const {
-  // BN,
-  // constants,
-  // expectEvent,
-  expectRevert,
-} = require("@openzeppelin/test-helpers");
-const { assert } = require("chai");
+/* eslint-disable no-undef */
+const { assert, expect } = require("chai");
 
-const DappToken = artifacts.require("DappToken");
+const MyToken = artifacts.require("MyToken");
+const MyTokenSale = artifacts.require("MyTokenSale");
 
-contract("DappToken", function (accounts) {
-  beforeEach(async function () {
-    token = await DappToken.deployed();
-  });
-  it("initializes the contract with the correct data", async function () {
-    expect(await token.name()).equal("DApp Token");
-    expect(await token.symbol()).equal("DAPP");
-    expect(await token.standard()).equal("DApp Token v1.0");
-  });
-  it("sets the total supply upon deployement", async function () {
-    assert.equal(
-      (await token.totalSupply()).toNumber(),
-      1000000,
-      "sets the total supply"
-    );
-    assert.equal(
-      (await token.balanceOf(accounts[0])).toNumber(),
-      1000000,
-      "it allocates the initial supply to the admin"
-    );
-  });
-  it("transfers token ownership", async function () {
-    await expectRevert(
-      token.transfer.call(accounts[1], 1351631636363),
-      "revert"
-    );
-  });
-  it("transfer returns a boolean", async function () {
-    let success = await token.transfer.call(accounts[1], 250000, {
-      from: accounts[0],
-    });
-    assert.equal(success, true, "it returns true");
-  });
-  it("transfers values", async function () {
-    let receipt = await token.transfer(accounts[1], 250000, {
-      from: accounts[0],
-    });
-    assert.equal(
-      (await token.balanceOf(accounts[1])).toNumber(),
-      250000,
-      "adds the amount"
-    );
-    assert.equal(
-      (await token.balanceOf(accounts[0])).toNumber(),
-      750000,
-      "deducts the amount from the sender account"
-    );
-    assert.equal(await receipt.logs.length, 1, "triggers one event");
-    assert.equal(
-      receipt.logs[0].event,
-      "Transfer",
-      "should be a transfer event"
-    );
-    assert.equal(
-      receipt.logs[0].args._from,
-      accounts[0],
-      "logs the accounts the tokens are transferred from"
-    );
-    assert.equal(
-      receipt.logs[0].args._to,
-      accounts[1],
-      "logs the account the tokens are transferred to"
-    );
-    assert.equal(
-      receipt.logs[0].args._value,
-      250000,
-      "logs the transfer amount"
-    );
-  });
-  it("approves token for delegated transfer", async function () {
-    // let success = await token.approve.call(accounts[1], 100);
-    assert.equal(
-      await token.approve.call(accounts[1], 100),
-      true,
-      "it returns true"
-    );
-    let receipt = await token.approve(accounts[1], 100, { from: accounts[0] });
-    assert.equal(await receipt.logs.length, 1, "triggers one event");
-    assert.equal(
-      receipt.logs[0].event,
-      "Approval",
-      "should be an approval event"
-    );
-    assert.equal(
-      receipt.logs[0].args._owner,
-      accounts[0],
-      "logs the accounts the tokens are authorized by"
-    );
-    assert.equal(
-      receipt.logs[0].args._spender,
-      accounts[1],
-      "logs the account the tokens are authorized to"
-    );
-    assert.equal(receipt.logs[0].args._value, 100, "logs the approved amount");
-    assert.equal(
-      await token.allowance(accounts[0], accounts[1]),
-      100,
-      "store the allowance"
-    );
-  });
-  it("handles the delegate transfer", async function () {
-    fromAccount = accounts[2];
-    toAccount = accounts[3];
-    spendingAccount = accounts[4];
-    await token.transfer(fromAccount, 100, { from: accounts[0] });
-    // approve spendingAccount to spend 10 tokens from fromAccount
-    await token.approve(spendingAccount, 10, { from: fromAccount });
-    //try transferring a larger amount than the sender's balance
-    await expectRevert(
-      token.transferFrom(fromAccount, toAccount, 9999, {
-        from: spendingAccount,
-      }),
-      "revert"
-    );
-    // try trasnferring something larger than approved amount
-    await expectRevert(
-      token.transferFrom(fromAccount, toAccount, 20, {
-        from: spendingAccount,
-      }),
-      "revert"
-    );
-    assert.equal(
-      await token.transferFrom.call(fromAccount, toAccount, 10, {
-        from: spendingAccount,
-      }),
-      true
-    );
-    let receipt = await token.transferFrom(fromAccount, toAccount, 10, {
-      from: spendingAccount,
-    });
-    assert.equal(receipt.logs.length, 1, "triggers one event");
-    assert.equal(receipt.logs[0].event, "Transfer", "should be Transfer event");
-    assert.equal(
-      receipt.logs[0].args._from,
-      fromAccount,
-      "logs the form account"
-    );
-    assert.equal(
-      receipt.logs[0].args._to,
-      toAccount,
-      "logs the account the tokens are transferred to"
-    );
-    assert.equal(receipt.logs[0].args._value, 10, "logs the transfer amount");
-    assert.equal(
-      (await token.balanceOf(fromAccount)).toNumber(),
-      90,
-      "deducts the amount from the sending account"
-    );
-    assert.equal(
-      (await token.balanceOf(toAccount)).toNumber(),
-      10,
-      "adds the amount to the receiving account"
-    );
-    assert.equal(
-      (await token.allowance(fromAccount, spendingAccount)).toNumber(),
-      0,
-      "deducts the amount from the allowance"
-    );
-  });
+require("chai").use(require("chai-as-promised")).should();
+
+function tokens(n) {
+  return web3.utils.toWei(n, "ether");
+}
+
+contract("MyToken",async function (accounts) {
+    let token,tokenSale
+    before(async()=>{
+      token = await MyToken.new("Yaya Token","Yaya","1000000000000000000000000");
+      tokenSale = await MyTokenSale.new(token.address);
+      token.transfer(tokenSale.address, "750000000000000000000000");
+    })
+    describe("it initializes the contract with the correct data", ()=>{
+      it("has the correct name",async()=>{
+        let name= await token.name()
+        assert.equal(name,"Yaya Token")
+      })
+      it("has the correct symbol",async ()=>{
+        expect(await token.symbol()).to.be.equal("Yaya")
+      })
+      it("has 18 decimals",async ()=>{
+        let decimals = await token.decimals()
+        assert.equal(decimals.toString(),"18")
+      })
+      it("initiazlies the total supply",async ()=>{
+        let totalSupply = await token.totalSupply()
+        assert.equal(totalSupply.toString(),tokens("1000000"))
+        let balance = await token.balanceOf(accounts[0]);
+        assert.equal(balance.toString(), tokens("250000"));
+        assert.equal((await token.balanceOf(tokenSale.address)).toString(),tokens("750000"));
+      })
+    })
+    describe("it handles the transfer function properly",()=>{
+      it("transfer returns a boolean", async function () {
+        let success = await token.transfer.call(accounts[1], 250000, {
+          from: accounts[0],
+        });
+        assert.equal(success, true, "it returns true");
+      });
+      it("rejects the transfer if the ballance is lower then the amount",async ()=>{
+        await token.transfer.call(accounts[6],tokens("200"),{from:accounts[4]}).should.be.rejected
+      })
+      it("transfers the value",async ()=>{
+        let reciept = await token.transfer(accounts[2],tokens("10000"),{from:accounts[0]})
+        let adminBalance = await token.balanceOf(accounts[0])
+        let investorBalance = await token.balanceOf(accounts[2])
+        assert.equal(adminBalance.toString(),tokens("240000"),"deducts the amount")
+        assert.equal(investorBalance.toString(),tokens("10000"),"adds the amount")
+        assert.equal(await reciept.logs.length,1,"triggers one event")
+        assert.equal(await reciept.logs[0].event,"Transfer","triggers a transfer event")
+        assert.equal(
+          await reciept.logs[0].args.from,
+          accounts[0],
+          "logs the accounts the tokens are transferred from"
+        );
+        assert.equal(await reciept.logs[0].args.to,accounts[2],"logs the account the tokens are transferred to")
+        assert.equal(
+          (await reciept.logs[0].args.value).toString(),
+          tokens("10000"),
+          "logs the transfer amount"
+        );
+      })
+      it("approves token for delegated transfer",async()=>{
+        let spender = accounts[1]
+        let admin = accounts[0]
+        assert.equal(
+          await token.approve.call(accounts[1], 100,{from:accounts[0]}),
+          true,
+          "it returns true"
+        );
+        let reciept = await token.approve(spender,tokens("1000"),{from:admin})
+        assert.equal(await reciept.logs.length,1,"triggers one event")
+        assert.equal(await reciept.logs[0].event,"Approval","triggers an apporval event")
+        assert.equal(await reciept.logs[0].args.owner,admin)
+        assert.equal(await reciept.logs[0].args.spender,spender)
+        assert.equal((await reciept.logs[0].args.value).toString(),tokens("1000"))
+        let allowance = await token.allowance(admin,spender)
+        assert.equal(allowance,tokens("1000"),"stores the allowance")
+      })
+      it("handles the delegated transfer",async ()=>{
+        let fromAccount = accounts[3]
+        let spenderAccount = accounts[4]
+        let toAccount = accounts[5]
+        await token.transfer(fromAccount,tokens("1000"),{from:accounts[0]})
+        await token.approve(spenderAccount,tokens("100"),{from:fromAccount})
+        // balance of from is higher than the amountn
+        await token.transferFrom.call(fromAccount,toAccount,tokens("51650"),{from:spenderAccount}).should.be.rejected
+        await token.transferFrom.call(fromAccount,toAccount,tokens("200"),{from:spenderAccount}).should.be.rejected
+        assert.equal(
+          await token.transferFrom.call(fromAccount, toAccount, tokens("50"), {
+            from: spenderAccount,
+          }),true
+        );
+        let reciept = await token.transferFrom(fromAccount,toAccount,tokens("50"),{from:spenderAccount})
+        assert.equal(reciept.logs.length,2,"triggers one event")
+        assert.equal(reciept.logs[0].event,"Transfer","triggers Transfer event")
+        assert.equal(
+          await reciept.logs[0].args.from,
+          fromAccount,
+          "logs the accounts the tokens are transferred from"
+        );
+        assert.equal(
+          await reciept.logs[0].args.to,
+          toAccount,
+          "logs the account the tokens are transferred to"
+        );
+        assert.equal(
+          (await reciept.logs[0].args.value).toString(),
+          tokens("50"),
+          "logs the transfer amount"
+        );
+        assert.equal(
+          reciept.logs[1].event,
+          "Approval",
+          "triggers Approval event"
+        );
+        assert.equal(await reciept.logs[1].args.owner, fromAccount);
+        assert.equal(await reciept.logs[1].args.spender, spenderAccount);
+        assert.equal(
+          (await reciept.logs[0].args.value).toString(),
+          tokens("50")
+        );
+        let fromBalance = await token.balanceOf(fromAccount);
+        let toBalance = await token.balanceOf(toAccount)
+        assert.equal(
+          fromBalance.toString(),
+          tokens("950"),
+          "deducts the amount from the sending account"
+        );
+        assert.equal(
+          toBalance.toString(),
+          tokens("50"),
+          "adds the amount to the receiving account"
+        );
+        assert.equal(
+          (await token.allowance(fromAccount, spenderAccount)).toString(),
+          tokens("50"),
+          "deducts the amount from the allowance"
+        );
+      })
+    })
 });

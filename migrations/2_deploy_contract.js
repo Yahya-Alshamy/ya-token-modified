@@ -1,10 +1,20 @@
-const DappToken = artifacts.require("DappToken");
-const DappTokenSale = artifacts.require("DappTokenSale");
+const MyToken = artifacts.require("MyToken");
+const MyTokenSale = artifacts.require("MyTokenSale");
 
 module.exports = async function (deployer) {
-  deployer.deploy(DappToken, 1000000).then(function () {
-    //token price is .001 Ether
-    tokenPrice = 1000000000000000;
-    return deployer.deploy(DappTokenSale, DappToken.address, tokenPrice);
-  });
+  await deployer.deploy(
+    
+    MyToken,
+    
+    "Yaya Token",
+    
+    "yaya",
+    
+    "1000000000000000000000000"
+  
+  );
+  const token = await MyToken.deployed();
+  await deployer.deploy(MyTokenSale, token.address);
+  const tokenSale = await MyTokenSale.deployed();
+  token.transfer(tokenSale.address, "750000000000000000000000");
 };
