@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/3.6.3/workbox-sw.js");
 
 importScripts(
-  "/ya-token/precache-manifest.80f2120f2454621718537b86ea0f1c70.js"
+  "/ya-token-modified/precache-manifest.872f83715e66a0f4a8a2299e4d3e5e26.js"
 );
 
 workbox.clientsClaim();
@@ -28,7 +28,7 @@ self.__precacheManifest = [].concat(self.__precacheManifest || []);
 workbox.precaching.suppressWarnings();
 workbox.precaching.precacheAndRoute(self.__precacheManifest, {});
 
-workbox.routing.registerNavigationRoute("/ya-token/index.html", {
+workbox.routing.registerNavigationRoute("/ya-token-modified/index.html", {
   
   blacklist: [/^\/_/,/\/[^/]+\.[^/]+$/],
 });
